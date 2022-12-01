@@ -6,16 +6,16 @@ let parseInput (input: string) =
         sublist.Split('\n')
         |> Array.map (fun number -> number |> int))
 
-let sumCaloriesForDear (elements: int [] []) =
+let sumCaloriesForDeer (elements: int [] []) =
     elements
     |> Array.map (fun caloriesArray -> caloriesArray |> Array.sum)
 
 let solvePartOne elements =
-    elements |> sumCaloriesForDear |> Array.max
+    elements |> sumCaloriesForDeer |> Array.max
 
 let solvePartTwo elements =
     elements
-    |> sumCaloriesForDear
+    |> sumCaloriesForDeer
     |> Array.sortDescending
     |> Array.take 3
     |> Array.sum
