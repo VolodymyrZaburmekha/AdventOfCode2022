@@ -41,24 +41,20 @@ let parseInput (lines: string) =
     |> Seq.filter (fun l -> not (String.IsNullOrEmpty l))
     |> Seq.map parsePacket
 
-let zip placeEmpty leftPackets rightPackets =
-    let length = List.max [ List.length leftPackets; List.length rightPackets ]
-
-    let defaultEmpty index list =
-        list |> List.tryItem index |> Option.defaultValue placeEmpty
-
-    seq { for i in 0 .. length - 1 -> leftPackets |> defaultEmpty i, rightPackets |> defaultEmpty i }
-
-let rec getFirstSome (values: seq<'a Option>) =
-    match values |> Seq.tryHead with
-    | None -> None
-    | Some h ->
-        match h with
-        | Some sh -> Some sh
-        | None -> getFirstSome (values |> Seq.skip 1)
-
 let compare (leftPacket, rightPacket) =
     let rec loop prevResult (left, right) =
+        let rec compareListElements prevResult l1 l2 =
+            match prevResult with
+            | Some pr -> Some pr
+            | None ->
+                match l1, l2 with
+                | [], [] -> None
+                | [], _ :: _ -> Some true
+                | _ :: _, [] -> Some false
+                | h1 :: t1, h2 :: t2 ->
+                    let current = (h1, h2) |> loop None
+                    compareListElements current t1 t2
+
         match prevResult with
         | Some r -> Some r
         | None ->
@@ -68,24 +64,10 @@ let compare (leftPacket, rightPacket) =
                 else if leftNumber > rightNumber then Some false
                 else None
             | ListContent leftList, Number numberRight ->
-                let left = ListContent leftList
-                let right = ListContent [ Number numberRight ]
-                loop prevResult (left, right)
+                loop prevResult (ListContent leftList, ListContent [ Number numberRight ])
             | Number leftNumber, ListContent rightList ->
-                let left = ListContent [ Number leftNumber ]
-                let right = ListContent rightList
-                loop prevResult (left, right)
-            | ListContent leftList, ListContent rightList ->
-                let leftLength = List.length leftList
-                let rightLength = List.length rightList
-
-                if leftLength > 0 && rightLength = 0 then
-                    Some false
-                else if leftLength = 0 && rightLength > 0 then
-                    Some true
-                else
-                    let pairs = zip (Number -1) leftList rightList
-                    pairs |> Seq.map (loop prevResult) |> getFirstSome
+                loop prevResult (ListContent [ Number leftNumber ], ListContent rightList)
+            | ListContent leftList, ListContent rightList -> compareListElements None leftList rightList
 
     loop None (leftPacket, rightPacket)
 
