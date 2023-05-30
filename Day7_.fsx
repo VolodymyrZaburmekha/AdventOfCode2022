@@ -1,6 +1,7 @@
 open System.Collections.Generic
 open System.IO
 open Microsoft.FSharp.Collections
+`open System
 
 type CommandType =
     | ChangeDirectory of string
@@ -41,6 +42,22 @@ let rec buildPossiblePaths path elements =
 
         newPath
         :: (buildPossiblePaths (Some newPath) tail)
+
+// buildPossiblePaths None [ "a"; "b"; "c" ]
+
+let rec buildPossiblePathsEager (path: string option) elements =
+    elements
+    |> Seq.mapFold (fun s el -> let r = if s = "" then el else s + "/" + el in r, r) ""
+    |> fst
+
+let rec buildPossiblePathsLazy (path: string option) elements =
+    elements
+    |> Seq.scan (fun s el -> if s = "" then el else s + "/" + el) ""
+    |> Seq.skip 1
+
+let _ = buildPossiblePathsEager None [ "a"; "b"; "c" ] //
+let _ = buildPossiblePathsLazy None [ "a"; "b"; "c" ]
+
 
 
 let getFolderSizes lines =
