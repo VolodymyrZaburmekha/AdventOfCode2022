@@ -3,16 +3,18 @@ open System.Collections.Generic
 open System.Linq
 
 let (===) actual expected = if actual = expected then () else failwithf "assertion failed: %A <> %A" actual expected
+
 let (====) (actual: seq<_>) (expected: seq<_>) =
     if actual.SequenceEqual(expected) then () else failwithf "assertion failed: %A <> %A" actual expected
 
 // val length: xs: seq<'a> -> int
 let length (s: seq<_>) =
-    use enumerator = s.GetEnumerator()
     let mutable count = 0
-    while enumerator.MoveNext() do
+    for _ in s do
         count <- count + 1
     count
+// Fixed: cr_mn: here could use for/in loop but of course it is perfectly fine
+
 
 // val map: f: ('a -> 'b) -> xs: seq<'a> -> seq<'b>
 let map f s =
@@ -52,29 +54,34 @@ let reduce f (s: seq<_>) =
 let take n (s: seq<_>) =
     seq {
         use enumerator = s.GetEnumerator()
-        for _ in 1..n do
-            if enumerator.MoveNext() then
-                yield enumerator.Current
+        let mutable taken = 0
+        while enumerator.MoveNext() && taken < n do
+            taken <- taken + 1
+            yield enumerator.Current
     }
+//Fixed: cr_mn: when we have less elements in "s" than "n", we unnecessarily call ".MoveNext" many times
+
 
 // val skip: n: int -> xs: seq<'a> -> seq<'a>
 let skip n (s: seq<_>) =
     seq {
-        let mutable currentIndex = 0
-        for i in s do
-            if currentIndex >= n then
-                yield i
-            currentIndex <- currentIndex + 1
+        use enumerator = s.GetEnumerator()
+        for _ in 1..n do
+            enumerator.MoveNext() |> ignore
+        while enumerator.MoveNext() do
+            yield enumerator.Current
     }
+//Fixed: cr_mn: for each iteration till the end of sequence we will be unnecessarily using "currentIndex" variable
+
 
 // val concat: list1: seq<'a> -> list2: seq<'a> -> seq<'a>
 let concat s1 s2 =
     seq {
-        for i in s1 do
-            yield i
-        for i2 in s2 do
-            yield i2
+        yield! s1
+        yield! s2
     }
+//Fixed: cr_mn: we can use yield!
+
 
 // val zip: f: ('a -> 'b -> 'c) -> list1: seq<'a> -> list2: seq<'b> -> seq<'c>
 let zip f (s1: seq<_>) (s2: seq<_>) =
@@ -85,14 +92,16 @@ let zip f (s1: seq<_>) (s2: seq<_>) =
         while enumerator1.MoveNext() && enumerator2.MoveNext() do
             yield f enumerator1.Current enumerator2.Current
     }
+// perfect! (ok)
 
 // val collect: f: ('a -> #seq<'c>) -> xs: seq<'a> -> seq<'c>
 let collect f s =
     seq {
         for i in s do
-            for subItem in f i do
-                yield subItem
+            yield! f i
     }
+//Fixed: cr_mn: we can use yield!
+
 
 // val reverse: xs: seq<'a> -> seq<'a>
 let reverse (s: seq<_>) =
@@ -102,6 +111,9 @@ let reverse (s: seq<_>) =
         for i in 0..maxIndex do
             yield list[maxIndex - i]
     }
+// cr_mn: I was looking lately how immutable list is implemented internally :) next time i will show you what i have found
+// in short, "Count" really iterators over all items in list, calling "list[max-i]" does the same
+
 
 // val forall: f: ('a -> bool) -> xs: seq<'a> -> bool
 let forall f (s: seq<_>) =
@@ -145,37 +157,32 @@ let sequenceEqual f (s1: seq<_>) (s2: seq<_>) =
 // val mergeTwoLists:
 //   list1: seq<'a> -> list2: seq<'a> -> seq<'a> when 'a: comparison
 let mergeTwoLists (s1: seq<_>) (s2: seq<_>) =
-    let createEnumerator (enumerator: IEnumerator<_>) =
-        (seq {
-            yield enumerator.Current
-            while enumerator.MoveNext() do
-                yield enumerator.Current
-        })
-            .GetEnumerator()
-
     let rec loop (enum1: IEnumerator<_>) (enum2: IEnumerator<_>) =
+        let createItems (enum: IEnumerator<_>) =
+            seq {
+                while enum.MoveNext() do
+                    yield enum.Current
+            }
         seq {
-            match enum1.MoveNext(), enum2.MoveNext() with
-            | false, false -> ()
-            | false, true ->
-                yield enum2.Current
-                yield! loop enum1 enum2
-            | true, false ->
-                yield enum1.Current
-                yield! loop enum1 enum2
-            | true, true ->
-                if enum1.Current < enum2.Current then
-                    yield enum1.Current
-                    yield! loop enum1 (createEnumerator enum2)
-                else
-                    yield enum2.Current
-                    yield! loop (createEnumerator enum1) enum2
+            if enum1.Current < enum2.Current then yield enum1.Current else yield enum2.Current
+
+            if enum1.Current < enum2.Current then
+                let movedNext = enum1.MoveNext()
+                if not movedNext then yield! createItems enum2 else yield! loop enum1 enum2
+            else
+                let movedNext = enum2.MoveNext()
+                if not movedNext then yield! createItems enum1 else yield! loop enum1 enum2
         }
 
     use enum1 = s1.GetEnumerator()
+    let _ = enum1.MoveNext()
     use enum2 = s2.GetEnumerator()
+    let _ = enum2.MoveNext()
     loop enum1 enum2
 
+
+//Fixed: cr_mn: really nice implementation, you can avoid using helper "createEnumerator" function
+// you call ".MoveNext" function at the beginning of each loop, maybe try to call it at the end
 
 length [] === 0
 length [ 1 ] === 1
@@ -228,3 +235,6 @@ sequenceEqual (=) [ 1; 2; 3 ] [ 1; 2; 3 ] === true
 sequenceEqual (<) [ 1; 2; 3 ] [ 10; 20; 30 ] === true
 sequenceEqual (<) [ 1; 2; 3 ] [ 10; 2; 30 ] === false
 sequenceEqual (=) [ 1; 2; 3 ] [ 1; 2 ] === false
+
+
+mergeTwoLists [ 0; 1; 2; 5 ] [ -1; 0; 3; 5 ] ==== [ -1; 0; 0; 1; 2; 3; 5 ]
