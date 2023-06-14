@@ -1,7 +1,7 @@
 open System.Collections.Generic
 open System.IO
 open Microsoft.FSharp.Collections
-`open System
+open System
 
 type CommandType =
     | ChangeDirectory of string
@@ -40,20 +40,15 @@ let rec buildPossiblePaths path elements =
     | head :: tail ->
         let newPath = getNewPath head
 
-        newPath
-        :: (buildPossiblePaths (Some newPath) tail)
+        newPath :: (buildPossiblePaths (Some newPath) tail)
 
 // buildPossiblePaths None [ "a"; "b"; "c" ]
 
 let rec buildPossiblePathsEager (path: string option) elements =
-    elements
-    |> Seq.mapFold (fun s el -> let r = if s = "" then el else s + "/" + el in r, r) ""
-    |> fst
+    elements |> Seq.mapFold (fun s el -> let r = if s = "" then el else s + "/" + el in r, r) "" |> fst
 
 let rec buildPossiblePathsLazy (path: string option) elements =
-    elements
-    |> Seq.scan (fun s el -> if s = "" then el else s + "/" + el) ""
-    |> Seq.skip 1
+    elements |> Seq.scan (fun s el -> if s = "" then el else s + "/" + el) "" |> Seq.skip 1
 
 let _ = buildPossiblePathsEager None [ "a"; "b"; "c" ] //
 let _ = buildPossiblePathsLazy None [ "a"; "b"; "c" ]
@@ -79,13 +74,9 @@ let getFolderSizes lines =
             let pathParts = path.Split('/')
 
             let possiblePaths =
-                pathParts
-                |> Seq.take ((Array.length pathParts) - 1)
-                |> Seq.toList
-                |> buildPossiblePaths None
+                pathParts |> Seq.take ((Array.length pathParts) - 1) |> Seq.toList |> buildPossiblePaths None
 
-            possiblePaths
-            |> Seq.fold (fun m p -> Map.change p (Option.defaultValue 0 >> ((+) size) >> Some) m) state)
+            possiblePaths |> Seq.fold (fun m p -> Map.change p (Option.defaultValue 0 >> ((+) size) >> Some) m) state)
         (Map [])
 
 // |> Seq.fold
@@ -106,11 +97,7 @@ let getFolderSizes lines =
 
 let input = File.ReadAllLines "Data/Day7.txt"
 
-let part1 =
-    getFolderSizes input
-    |> Seq.map (fun kv -> kv.Value)
-    |> Seq.filter (fun v -> v <= 100000)
-    |> Seq.sum
+let part1 = getFolderSizes input |> Seq.map (fun kv -> kv.Value) |> Seq.filter (fun v -> v <= 100000) |> Seq.sum
 
 let part2 =
     let folders = getFolderSizes input

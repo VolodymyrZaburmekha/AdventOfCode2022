@@ -91,7 +91,8 @@ let result2 =
             | None -> 0)
         |> Seq.toList
 
-    dividers |> Seq.map (fun pp -> List.findIndex (fun p -> p = pp) sortedList + 1) |> Seq.reduce (*)
+    dividers |> Seq.map (fun d -> List.findIndex ((=) d) sortedList + 1) |> Seq.reduce (*)
+
 
 // let findIndex searchedPacket l =
 //     (l |> List.findIndex (fun p -> p = searchedPacket)) + 1

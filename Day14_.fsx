@@ -13,8 +13,7 @@ let getRockStructure input =
 
         path |> Seq.pairwise |> Seq.collect getLineFootprint //path |> Seq.windowed 2 |> Seq.map (fun l -> getLineFootprint l[0] l[1]) |> Seq.collect (fun l -> l)
 
-    input |> Seq.collect getRockFootprint |> Set //input |> List.map (fun path -> getRockFootprint path) |> List.collect (fun l -> l) |> Set
-
+    input |> Seq.collect getRockFootprint |> set //input |> List.map (fun path -> getRockFootprint path) |> List.collect (fun l -> l) |> Set
 
 let getPath p1 p2 = { (min p1 p2) .. (max p1 p2) }
 
@@ -59,6 +58,8 @@ let simulate canReachFloor map =
     loop 0 map
 
 
+let sw = System.Diagnostics.Stopwatch.StartNew()
+
 let map =
     File.ReadAllLines "Data/Day14.txt"
     |> Seq.map (fun p -> p.Split(" -> ") |> Seq.map (fun point -> let xy = point.Split(",") in int xy[0], int xy[1]))
@@ -66,3 +67,5 @@ let map =
 
 let part1 = simulate false map
 let part2 = simulate true map + 1
+
+let TIME = sw.ElapsedMilliseconds
