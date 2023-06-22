@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<!-- saved from url=(0141)http://10.132.225.218:8080/PREZENTACJE/2022_04_11_MN_MonadyWFSharpComputationExtensions/2022_04_11_MN_MonadyWFSharpComputationExtensions.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome file</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css">
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h2 id="monady-w-f">Monady w F#</h2>
+<h2 id="option">Option</h2>
+<h4 id="option---opcjonalna-wartość">Option - opcjonalna wartość</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">type</span> MyOption<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span> <span class="token operator">=</span>
+    <span class="token operator">|</span> MNone
+    <span class="token operator">|</span> MSome <span class="token keyword">of</span> <span class="token type variable">'T</span>
+
+<span class="token keyword">let</span> o1<span class="token punctuation">:</span> MyOption<span class="token operator">&lt;</span>int<span class="token operator">&gt;</span> <span class="token operator">=</span> MNone
+<span class="token keyword">let</span> o2<span class="token punctuation">:</span> MyOption<span class="token operator">&lt;</span>int<span class="token operator">&gt;</span> <span class="token operator">=</span> MSome <span class="token number">12</span>
+
+<span class="token keyword">let</span> parseInt <span class="token punctuation">(</span>str<span class="token punctuation">:</span> string<span class="token punctuation">)</span> <span class="token operator">=</span>
+    <span class="token keyword">let</span> <span class="token punctuation">(</span>success<span class="token punctuation">,</span> <span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> Int32<span class="token punctuation">.</span>TryParse str
+    <span class="token keyword">if</span> success <span class="token keyword">then</span> MSome <span class="token keyword">value</span> <span class="token keyword">else</span> MNone
+</code></pre>
+<h4 id="option---funkcja-bind">Option - funkcja “bind”</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> parseTwoInts' str1 str2 <span class="token operator">=</span>
+    <span class="token keyword">let</span> int1 <span class="token operator">=</span> Int32<span class="token punctuation">.</span>Parse str1
+    <span class="token keyword">let</span> int2 <span class="token operator">=</span> Int32<span class="token punctuation">.</span>Parse str2
+    int1 <span class="token operator">+</span> int2
+
+<span class="token keyword">let</span> parseTwoInts'<span class="token type variable">'</span> str1 str2 <span class="token operator">=</span>
+    <span class="token keyword">let</span> int1O <span class="token operator">=</span> parseInt str1
+    <span class="token keyword">match</span> int1O <span class="token keyword">with</span>
+    <span class="token operator">|</span> MNone <span class="token operator">-&gt;</span> MNone
+    <span class="token operator">|</span> MSome int1 <span class="token operator">-&gt;</span>
+        <span class="token keyword">let</span> int2O <span class="token operator">=</span> parseInt str2
+        <span class="token keyword">match</span> int2O <span class="token keyword">with</span>
+        <span class="token operator">|</span> MNone <span class="token operator">-&gt;</span> MNone
+        <span class="token operator">|</span> MSome int2 <span class="token operator">-&gt;</span> MSome<span class="token punctuation">(</span>int1 <span class="token operator">+</span> int2<span class="token punctuation">)</span>
+
+
+<span class="token operator">//</span> <span class="token punctuation">(</span><span class="token type variable">'a</span> <span class="token operator">-&gt;</span> Option<span class="token string">'&lt;'</span>b<span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> Option<span class="token string">'&lt;'</span>a<span class="token operator">&gt;</span> <span class="token operator">-&gt;</span> Option<span class="token string">'&lt;'</span>b<span class="token operator">&gt;</span>
+<span class="token keyword">let</span> bind binder option <span class="token operator">=</span>
+    <span class="token keyword">match</span> option <span class="token keyword">with</span>
+    <span class="token operator">|</span> MNone <span class="token operator">-&gt;</span> MNone
+    <span class="token operator">|</span> MSome <span class="token keyword">value</span> <span class="token operator">-&gt;</span> binder <span class="token keyword">value</span>
+
+<span class="token keyword">let</span> parseTwoInts'<span class="token type variable">'</span><span class="token type variable">'</span> str1 str2 <span class="token operator">=</span>
+    parseInt str1
+    <span class="token operator">|&gt;</span> bind
+	    <span class="token punctuation">(</span><span class="token keyword">fun</span> int1 <span class="token operator">-&gt;</span>
+		    parseInt str2
+		    <span class="token operator">|&gt;</span> bind <span class="token punctuation">(</span><span class="token keyword">fun</span> int2 <span class="token operator">-&gt;</span> MSome<span class="token punctuation">(</span>int1 <span class="token operator">+</span> int2<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+<h4 id="option---funkcje-map-i-return">Option - funkcje “map” i “return”</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token operator">//</span> <span class="token punctuation">(</span><span class="token type variable">'a</span> <span class="token operator">-&gt;</span> <span class="token type variable">'b</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> Option<span class="token string">'&lt;'</span>a<span class="token operator">&gt;</span> <span class="token operator">-&gt;</span> Option<span class="token string">'&lt;'</span>b<span class="token operator">&gt;</span>
+<span class="token keyword">let</span> map binder option <span class="token operator">=</span>
+    <span class="token keyword">match</span> option <span class="token keyword">with</span>
+    <span class="token operator">|</span> MNone <span class="token operator">-&gt;</span> MNone
+    <span class="token operator">|</span> MSome <span class="token keyword">value</span> <span class="token operator">-&gt;</span> MSome<span class="token punctuation">(</span>binder <span class="token keyword">value</span><span class="token punctuation">)</span>
+
+
+<span class="token keyword">let</span> parseTwoInts'<span class="token type variable">'</span><span class="token type variable">'</span><span class="token type variable">`</span> str1 str2 <span class="token operator">=</span>
+    parseInt str1
+    <span class="token operator">|&gt;</span> bind
+	    <span class="token punctuation">(</span><span class="token keyword">fun</span> int1 <span class="token operator">-&gt;</span>
+		    parseInt str2
+		    <span class="token operator">|&gt;</span> map <span class="token punctuation">(</span><span class="token keyword">fun</span> int2 <span class="token operator">-&gt;</span> int1 <span class="token operator">+</span> int2<span class="token punctuation">)</span><span class="token punctuation">)</span>
+		    
+<span class="token operator">//</span> <span class="token type variable">'map</span><span class="token type variable">'</span> zaimplementowany za pomoca <span class="token type variable">'bind</span><span class="token type variable">'</span> oraz <span class="token type variable">'return</span><span class="token type variable">'</span>
+
+<span class="token operator">//</span><span class="token type variable">'a</span> <span class="token operator">-&gt;</span> MyOption<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span>
+<span class="token keyword">let</span> return' <span class="token keyword">value</span> <span class="token operator">=</span> MSome <span class="token keyword">value</span>
+
+<span class="token keyword">let</span> map' binder option <span class="token operator">=</span> option <span class="token operator">|&gt;</span> bind <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token keyword">value</span> <span class="token operator">-&gt;</span> return' <span class="token punctuation">(</span>binder <span class="token keyword">value</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+<h4 id="option---computation-expressions">Option - “computation expressions”</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token operator">//</span> string <span class="token operator">-&gt;</span> string <span class="token operator">-&gt;</span> int
+<span class="token keyword">let</span> parseTwoInts' str1 str2 <span class="token operator">=</span>
+    <span class="token keyword">let</span> int1 <span class="token operator">=</span> Int32<span class="token punctuation">.</span>Parse str1
+    <span class="token keyword">let</span> int2 <span class="token operator">=</span> Int32<span class="token punctuation">.</span>Parse str2
+    int1 <span class="token operator">+</span> int2
+
+<span class="token operator">//</span> string <span class="token operator">-&gt;</span> string <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span>int<span class="token operator">&gt;</span>
+<span class="token keyword">let</span> parseTowInts'<span class="token type variable">'</span><span class="token type variable">'</span><span class="token type variable">'</span><span class="token type variable">'</span> str1 str2 <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">let</span><span class="token operator">!</span> int1 <span class="token operator">=</span> parseInt str1
+        <span class="token keyword">let</span><span class="token operator">!</span> int2 <span class="token operator">=</span> parseInt str2
+        return int1 <span class="token operator">+</span> int2
+    <span class="token punctuation">}</span>
+</code></pre>
+<h2 id="computation-expressions">Computation expressions</h2>
+<h4 id="api">API</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token operator">//</span> Creating a New Type <span class="token keyword">of</span> Computation Expression
+https<span class="token punctuation">:</span><span class="token operator">//</span>docs<span class="token punctuation">.</span>microsoft<span class="token punctuation">.</span>com<span class="token operator">/</span>en<span class="token operator">-</span>us<span class="token operator">/</span>dotnet<span class="token operator">/</span>fsharp<span class="token operator">/</span>language<span class="token operator">-</span>reference<span class="token operator">/</span>computation<span class="token operator">-</span>expressions#creating<span class="token operator">-</span>a<span class="token operator">-</span><span class="token keyword">new</span><span class="token operator">-</span><span class="token keyword">type</span><span class="token operator">-</span><span class="token keyword">of</span><span class="token operator">-</span>computation<span class="token operator">-</span>expression
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>ReturnFrom<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>f<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>  <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>delayed<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>  <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>monad<span class="token punctuation">,</span> binder<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>Combine<span class="token punctuation">(</span>monad1<span class="token punctuation">,</span> monad2<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> finallyBody<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>    
+    member this<span class="token punctuation">.</span>TryWith<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> catchBody<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> 
+    member this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>res<span class="token punctuation">:</span> <span class="token directive function">#IDisposable</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    member this<span class="token punctuation">.</span>For<span class="token punctuation">(</span>sequence<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+
+<span class="token keyword">let</span> option <span class="token operator">=</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<h4 id="pomocnicze-delayedo-returno-bindo">Pomocnicze “DelayedO, returnO, bindO”</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">type</span> DelayedO<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span> <span class="token operator">=</span> unit <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span>
+
+<span class="token keyword">let</span> returnO x <span class="token operator">=</span> Some x <span class="token operator">//</span> <span class="token type variable">'a</span> <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span>
+<span class="token keyword">let</span> bindO <span class="token operator">=</span> Option<span class="token punctuation">.</span>bind <span class="token operator">//</span> <span class="token punctuation">(</span><span class="token type variable">'a</span> <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span><span class="token type variable">'b</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span> <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span><span class="token type variable">'b</span><span class="token operator">&gt;</span>
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnO <span class="token keyword">value</span>
+    member this<span class="token punctuation">.</span>ReturnFrom<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token keyword">value</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+
+<span class="token keyword">let</span> option <span class="token operator">=</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<h4 id="delay-.run-...-.return-return">.Delay, .Run, … .Return (return)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> returnTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+	option <span class="token punctuation">{</span>
+		return <span class="token number">1</span> 
+	<span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> returnTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+	option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+		option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>
+			<span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+		<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    <span class="token operator">//</span> member this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>f<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> f
+    member this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>f<span class="token punctuation">:</span> unit <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span> <span class="token operator">=</span> f    
+    member this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>delayed<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> delayed <span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnO <span class="token keyword">value</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h4 id="returnfrom-return">.ReturnFrom (return!)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> returnFromTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+	option <span class="token punctuation">{</span>
+		return<span class="token operator">!</span> Some <span class="token number">1</span> 
+	<span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> returnFromTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+	option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+		option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>
+			<span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>ReturnFrom<span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+		<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>ReturnFrom<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token keyword">value</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h4 id="bind-let">.Bind (let!)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> bindTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> Some <span class="token number">1</span>
+        <span class="token keyword">let</span><span class="token operator">!</span> v2 <span class="token operator">=</span> Some <span class="token number">2</span>
+        return v1 <span class="token operator">+</span> v2
+    <span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> bindTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+        option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>
+	        <span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+		        option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> v1 <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some <span class="token number">2</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> v2 <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span>v1 <span class="token operator">+</span> v2<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>monad<span class="token punctuation">,</span> binder<span class="token punctuation">)</span> <span class="token operator">=</span> bindO binder monad
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h4 id="bind-do">.Bind (do!)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> doTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">do</span><span class="token operator">!</span> Some<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token keyword">do</span><span class="token operator">!</span> Some<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> doTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+        option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>
+	        <span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+		        option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+</code></pre>
+<h4 id="zero">.Zero</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> zeroTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token boolean">false</span> <span class="token keyword">then</span>
+            <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> Some <span class="token number">1</span>
+            return v1<span class="token punctuation">.</span>ToString<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> zeroTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+        option<span class="token punctuation">.</span>Delay
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                <span class="token keyword">if</span> <span class="token boolean">false</span> <span class="token keyword">then</span>
+	                option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> v1 <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span>v1<span class="token punctuation">.</span>ToString<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token keyword">else</span>
+	                option<span class="token punctuation">.</span>Zero<span class="token operator">&lt;</span>string<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnO Unchecked<span class="token punctuation">.</span>defaultof<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h4 id="combine-...-.while-while">.Combine, … .While (while)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> whileTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">let</span> <span class="token keyword">mutable</span> i <span class="token operator">=</span> <span class="token number">0</span>
+        <span class="token keyword">while</span> i <span class="token operator">&lt;</span> <span class="token number">3</span> <span class="token keyword">do</span>
+            <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> Some <span class="token number">1</span>
+            i <span class="token operator">&lt;-</span> i <span class="token operator">+</span> v1
+        return i
+    <span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> whileTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+        option<span class="token punctuation">.</span>Delay
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                <span class="token keyword">let</span> i <span class="token operator">=</span> ref <span class="token number">0</span> <span class="token operator">//</span> <span class="token punctuation">{</span> contents <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">}</span>
+                option<span class="token punctuation">.</span>Combine<span class="token punctuation">(</span>
+                    option<span class="token punctuation">.</span>While<span class="token punctuation">(</span>
+                        <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> i<span class="token punctuation">.</span>contents <span class="token operator">&gt;</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+                        option<span class="token punctuation">.</span>Delay
+                            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                                option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>
+                                    Some <span class="token number">1</span><span class="token punctuation">,</span>
+                                    <span class="token punctuation">(</span><span class="token keyword">fun</span> v1 <span class="token operator">-&gt;</span>
+                                        i<span class="token punctuation">.</span>contents <span class="token operator">&lt;-</span> i<span class="token punctuation">.</span>contents <span class="token operator">+</span> v1
+                                        option<span class="token punctuation">.</span>Zero<span class="token operator">&lt;</span>obj<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                                <span class="token punctuation">)</span><span class="token punctuation">)</span>
+                    <span class="token punctuation">)</span><span class="token punctuation">,</span>
+                    option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span>i<span class="token punctuation">.</span>contents<span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">if</span> guard <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">then</span> this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span> <span class="token operator">|&gt;</span> bindO <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">else</span> this<span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h4 id="trywith-trywith">.TryWith (try/with)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> tryCatchTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">try</span>
+            <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> Some <span class="token number">1</span>
+            return v1 <span class="token operator">/</span> <span class="token number">0</span>
+        <span class="token keyword">with</span>
+        <span class="token operator">|</span> e <span class="token operator">-&gt;</span>
+            <span class="token keyword">let</span><span class="token operator">!</span> v2 <span class="token operator">=</span> Some <span class="token number">1</span>
+            return v2
+    <span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> tryCatchTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+        option<span class="token punctuation">.</span>Delay
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                option<span class="token punctuation">.</span>TryWith<span class="token punctuation">(</span>
+                    option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> v1 <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span>v1 <span class="token operator">/</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+                    <span class="token keyword">fun</span> e <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>Some <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> v2 <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span>v2<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+
+
+<span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>TryWith<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> catchBody<span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">try</span>
+            this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span>
+        <span class="token keyword">with</span>
+        <span class="token operator">|</span> e <span class="token operator">-&gt;</span> catchBody e
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h4 id="for-for">.For (for)</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> forInTest <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option <span class="token punctuation">{</span>
+        <span class="token keyword">let</span> <span class="token keyword">mutable</span> i <span class="token operator">=</span> <span class="token number">0</span>
+        <span class="token keyword">for</span> j <span class="token keyword">in</span> <span class="token number">1</span> <span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token number">3</span> <span class="token keyword">do</span>
+            <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> Some <span class="token number">1</span>
+            i <span class="token operator">&lt;-</span> i <span class="token operator">+</span> v1
+        return i
+    <span class="token punctuation">}</span>
+
+
+<span class="token keyword">let</span> forInTest' <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    option<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>
+        option<span class="token punctuation">.</span>Delay
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                <span class="token keyword">let</span> i <span class="token operator">=</span> ref <span class="token number">0</span>
+                option<span class="token punctuation">.</span>Combine<span class="token punctuation">(</span>
+                    option<span class="token punctuation">.</span>For<span class="token punctuation">(</span>
+                        seq <span class="token punctuation">{</span> <span class="token number">1</span> <span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token number">3</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+                        <span class="token punctuation">(</span><span class="token keyword">fun</span> j <span class="token operator">-&gt;</span>
+                            option<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>
+                                Some <span class="token number">1</span><span class="token punctuation">,</span>
+                                <span class="token punctuation">(</span><span class="token keyword">fun</span> v1 <span class="token operator">-&gt;</span>
+                                    i<span class="token punctuation">.</span>contents <span class="token operator">&lt;-</span> i<span class="token punctuation">.</span>contents <span class="token operator">+</span> v1
+                                    option<span class="token punctuation">.</span>Zero<span class="token operator">&lt;</span>obj<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                            <span class="token punctuation">)</span><span class="token punctuation">)</span>
+                    <span class="token punctuation">)</span><span class="token punctuation">,</span>
+                    option<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> option<span class="token punctuation">.</span>Return<span class="token punctuation">(</span>i<span class="token punctuation">.</span>contents<span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+</code></pre>
+<h4 id="for-.using-tryfinally">.For, .Using, TryFinally</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">type</span> OptionBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">if</span> guard <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">then</span> this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span> <span class="token operator">|&gt;</span> bindO <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">else</span> this<span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedO<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> finallyBody<span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">try</span>
+            this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span>
+        finally
+            finallyBody <span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>res<span class="token punctuation">:</span> <span class="token directive function">#IDisposable</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span>
+        this<span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>
+	        this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>
+		        <span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> body res<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> <span class="token keyword">if</span> not <span class="token punctuation">(</span>isNull <span class="token punctuation">(</span>box res<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">then</span> res<span class="token punctuation">.</span>Dispose<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>For<span class="token punctuation">(</span>sequence<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span>
+        this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>
+            sequence<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> iterator <span class="token operator">-&gt;</span>
+	            this<span class="token punctuation">.</span>While<span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> iterator<span class="token punctuation">.</span>MoveNext<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span> this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> body iterator<span class="token punctuation">.</span>Current<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+</code></pre>
+<h2 id="task">Task</h2>
+<h4 id="taskbuilder">TaskBuilder</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">type</span> DelayedT<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span> <span class="token operator">=</span> unit <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span>
+
+<span class="token keyword">let</span> returnT <span class="token operator">=</span> Task<span class="token punctuation">.</span>FromResult <span class="token operator">//</span> <span class="token type variable">'a</span> <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span>
+
+<span class="token operator">//</span> <span class="token punctuation">(</span><span class="token type variable">'a</span> <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span><span class="token type variable">'b</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span> <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span><span class="token type variable">'b</span><span class="token operator">&gt;</span>
+<span class="token keyword">let</span> bindT<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token punctuation">,</span> <span class="token type variable">'r</span><span class="token operator">&gt;</span> <span class="token punctuation">(</span>f<span class="token punctuation">:</span> <span class="token type variable">'a</span> <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span><span class="token type variable">'r</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token punctuation">(</span>task<span class="token punctuation">:</span> Task<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+	task<span class="token punctuation">.</span>ContinueWith<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span>t<span class="token punctuation">:</span> Task<span class="token operator">&lt;</span><span class="token type variable">'a</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> f t<span class="token punctuation">.</span>Result<span class="token punctuation">)</span><span class="token punctuation">.</span>Unwrap<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+<span class="token keyword">type</span> TaskBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    member this<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnT <span class="token keyword">value</span>
+    member this<span class="token punctuation">.</span>ReturnFrom<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token keyword">value</span>
+    member this<span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnT Unchecked<span class="token punctuation">.</span>defaultof<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span>
+
+    member this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>f<span class="token punctuation">:</span> DelayedT<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> f
+    member this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>delayed<span class="token punctuation">:</span> DelayedT<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> delayed <span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>monad<span class="token punctuation">,</span> binder<span class="token punctuation">)</span> <span class="token operator">=</span> bindT binder monad
+    member this<span class="token punctuation">.</span>Combine<span class="token punctuation">(</span>monad1<span class="token punctuation">,</span> monad2<span class="token punctuation">:</span> DelayedT<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> monad1 <span class="token operator">|&gt;</span> bindT <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>monad2<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">:</span> DelayedT<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">if</span> guard <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">then</span> this<span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span> <span class="token operator">|&gt;</span> bindT <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">else</span> this<span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedT<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> finallyBody<span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">try</span>
+            this<span class="token punctuation">_</span>
+                <span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span>
+                <span class="token punctuation">.</span>ContinueWith<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span>t<span class="token punctuation">:</span> Task<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                    finallyBody <span class="token punctuation">(</span><span class="token punctuation">)</span>
+                    t<span class="token punctuation">.</span>Result<span class="token punctuation">)</span>
+        <span class="token keyword">with</span>
+        <span class="token operator">|</span> e <span class="token operator">-&gt;</span>
+            finallyBody <span class="token punctuation">(</span><span class="token punctuation">)</span>
+            Task<span class="token punctuation">.</span>FromException<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">(</span>e<span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>TryWith<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedT<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> catchBody<span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">try</span>
+            this<span class="token punctuation">_</span>
+                <span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span>
+                <span class="token punctuation">.</span>ContinueWith<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span>t<span class="token punctuation">:</span> Task<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> 
+	                <span class="token keyword">if</span> t<span class="token punctuation">.</span>IsFaulted <span class="token keyword">then</span>
+		                catchBody <span class="token punctuation">(</span>t<span class="token punctuation">.</span>Exception <span class="token punctuation">:</span><span class="token operator">&gt;</span> Exception<span class="token punctuation">)</span> 
+	                <span class="token keyword">else</span> 
+		                t<span class="token punctuation">)</span>
+                <span class="token punctuation">.</span>Unwrap<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token keyword">with</span>
+        <span class="token operator">|</span> e <span class="token operator">-&gt;</span> catchBody e
+
+    member this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>res<span class="token punctuation">:</span> <span class="token directive function">#IDisposable</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span>
+        this<span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>
+	        this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> body res<span class="token punctuation">)</span><span class="token punctuation">,</span>
+	        <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> <span class="token keyword">if</span> not <span class="token punctuation">(</span>isNull <span class="token punctuation">(</span>box res<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">then</span> res<span class="token punctuation">.</span>Dispose<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>For<span class="token punctuation">(</span>sequence<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span>
+        this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>
+            sequence<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> iterator <span class="token operator">-&gt;</span>
+	            this<span class="token punctuation">.</span>While<span class="token punctuation">(</span>
+		            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> iterator<span class="token punctuation">.</span>MoveNext<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+		            this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> body iterator<span class="token punctuation">.</span>Current<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">)</span>
+
+<span class="token keyword">let</span> task <span class="token operator">=</span> TaskBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<h4 id="option-1">Option</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token operator">//</span> string <span class="token operator">-&gt;</span> Option<span class="token operator">&lt;</span>int<span class="token operator">&gt;</span>
+<span class="token keyword">let</span> parseInt <span class="token punctuation">(</span>str<span class="token punctuation">:</span> string<span class="token punctuation">)</span> <span class="token operator">=</span>
+    <span class="token keyword">let</span> <span class="token punctuation">(</span>success<span class="token punctuation">,</span> <span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> Int32<span class="token punctuation">.</span>TryParse str
+    <span class="token keyword">if</span> success <span class="token keyword">then</span> Some <span class="token keyword">value</span> <span class="token keyword">else</span> None
+
+<span class="token keyword">let</span> printM <span class="token punctuation">(</span>o<span class="token punctuation">:</span> Option<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> printfn <span class="token string">"%A"</span> o
+
+
+<span class="token keyword">let</span> xx <span class="token operator">=</span> option
+xx <span class="token punctuation">{</span>
+    <span class="token keyword">let</span> <span class="token keyword">mutable</span> result <span class="token operator">=</span> <span class="token number">0</span>
+    <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> parseInt <span class="token string">"1"</span>
+    result <span class="token operator">&lt;-</span> result <span class="token operator">+</span> v1
+    return result
+<span class="token punctuation">}</span>
+<span class="token operator">|&gt;</span> printM
+</code></pre>
+<h4 id="task-1">Task</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token operator">//</span> string <span class="token operator">-&gt;</span> Task<span class="token operator">&lt;</span>int<span class="token operator">&gt;</span>
+<span class="token keyword">let</span> parseInt <span class="token punctuation">(</span>str<span class="token punctuation">:</span> string<span class="token punctuation">)</span> <span class="token operator">=</span> Task<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">)</span><span class="token punctuation">.</span>ContinueWith<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> Int32<span class="token punctuation">.</span>Parse str<span class="token punctuation">)</span>
+
+<span class="token keyword">let</span> printM <span class="token punctuation">(</span>task<span class="token punctuation">:</span> Task<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    task<span class="token punctuation">.</span>ContinueWith
+        <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span>t<span class="token punctuation">:</span> Task<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+            <span class="token keyword">if</span> t<span class="token punctuation">.</span>IsFaulted <span class="token keyword">then</span>
+	            printfn <span class="token string">"error: %A"</span> t<span class="token punctuation">.</span>Exception<span class="token punctuation">.</span>Message
+            <span class="token keyword">else</span> 
+	            printfn <span class="token string">"result: %A"</span> t<span class="token punctuation">.</span>Result<span class="token punctuation">)</span>
+    <span class="token operator">|&gt;</span> ignore
+
+
+<span class="token keyword">let</span> xx <span class="token operator">=</span> task
+xx <span class="token punctuation">{</span>
+    <span class="token keyword">let</span> <span class="token keyword">mutable</span> result <span class="token operator">=</span> <span class="token number">0</span>
+    <span class="token keyword">let</span><span class="token operator">!</span> v1 <span class="token operator">=</span> parseInt <span class="token string">"1"</span>
+    result <span class="token operator">&lt;-</span> result <span class="token operator">+</span> v1
+    return result
+<span class="token punctuation">}</span>
+<span class="token operator">|&gt;</span> printM
+</code></pre>
+<h2 id="seq">Seq</h2>
+<h4 id="implementacja-ienumerableienumerator">Implementacja IEnumerable/IEnumerator</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> newEnumerator moveNext current dispose <span class="token operator">=</span>
+    <span class="token punctuation">{</span> <span class="token keyword">new</span> IEnumerator<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span> <span class="token keyword">with</span>
+        member this<span class="token punctuation">.</span>Current <span class="token operator">=</span> current <span class="token punctuation">(</span><span class="token punctuation">)</span>
+      interface IEnumerator <span class="token keyword">with</span>
+          member this<span class="token punctuation">.</span>MoveNext<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> moveNext <span class="token punctuation">(</span><span class="token punctuation">)</span>
+          member this<span class="token punctuation">.</span>Current <span class="token operator">=</span> current <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">:</span><span class="token operator">&gt;</span> obj
+          member this<span class="token punctuation">.</span>Reset<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span>
+      interface IDisposable <span class="token keyword">with</span>
+          member this<span class="token punctuation">.</span>Dispose<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> dispose <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">}</span>
+
+<span class="token keyword">let</span> newEnumerable getEnumerator <span class="token operator">=</span>
+    <span class="token punctuation">{</span> <span class="token keyword">new</span> IEnumerable<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span> <span class="token keyword">with</span>
+        member this<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> getEnumerator <span class="token punctuation">(</span><span class="token punctuation">)</span>
+      interface IEnumerable <span class="token keyword">with</span>
+          member this<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token punctuation">(</span>this <span class="token punctuation">:</span><span class="token operator">?&gt;</span> IEnumerable<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">:</span><span class="token operator">&gt;</span> IEnumerator <span class="token punctuation">}</span>
+
+
+<span class="token keyword">let</span> ones <span class="token operator">=</span> enumerable <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> enumerator <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> <span class="token boolean">true</span><span class="token punctuation">)</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+ones <span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>take <span class="token number">10</span> <span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>toArray
+</code></pre>
+<h4 id="implementacja-ienumerableienumerator---pomocnicze-metody">Implementacja IEnumerable/IEnumerator -&gt; pomocnicze metody</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> newEnumerableDForNext f <span class="token operator">=</span>
+    newEnumerable
+        <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+            <span class="token keyword">let</span> next<span class="token punctuation">,</span> dispose <span class="token operator">=</span> f <span class="token punctuation">(</span><span class="token punctuation">)</span>
+            <span class="token keyword">let</span> <span class="token keyword">mutable</span> currentValue <span class="token operator">=</span> None
+            <span class="token keyword">let</span> moveNext <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+                currentValue <span class="token operator">&lt;-</span> next <span class="token punctuation">(</span><span class="token punctuation">)</span>
+                Option<span class="token punctuation">.</span>isSome currentValue
+            newEnumerator moveNext <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> Option<span class="token punctuation">.</span>get currentValue<span class="token punctuation">)</span> dispose<span class="token punctuation">)</span>
+
+<span class="token keyword">let</span> newEnumerableForNext f <span class="token operator">=</span> newEnumerableDForNext <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> f <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> ignore<span class="token punctuation">)</span>
+
+
+<span class="token keyword">let</span> a<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span>int<span class="token operator">&gt;</span> <span class="token operator">=</span> enumerable' <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> <span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> Some <span class="token number">1</span><span class="token punctuation">)</span>
+<span class="token keyword">let</span> aaa <span class="token operator">=</span> a <span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>truncate <span class="token number">10</span> <span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>toArray
+</code></pre>
+<h4 id="tryfinally-trycatch">tryFinally, tryCatch</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> step <span class="token punctuation">(</span>e<span class="token punctuation">:</span> IEnumerator<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token keyword">if</span> e<span class="token punctuation">.</span>MoveNext<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">then</span> Some e<span class="token punctuation">.</span>Current <span class="token keyword">else</span> None
+
+<span class="token keyword">let</span> tryFinally <span class="token punctuation">(</span>items<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token punctuation">(</span>finallyBody<span class="token punctuation">:</span> unit <span class="token operator">-&gt;</span> unit<span class="token punctuation">)</span> <span class="token operator">=</span>
+    newEnumerableDForNext
+        <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+            <span class="token keyword">let</span> <span class="token keyword">mutable</span> enumerator <span class="token operator">=</span> items<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            <span class="token keyword">let</span> <span class="token keyword">mutable</span> isDisposed <span class="token operator">=</span> <span class="token boolean">false</span>
+            <span class="token keyword">let</span> dispose <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+                <span class="token keyword">if</span> not isDisposed <span class="token keyword">then</span>
+                    isDisposed <span class="token operator">&lt;-</span> <span class="token boolean">true</span>
+                    finallyBody <span class="token punctuation">(</span><span class="token punctuation">)</span>
+                    enumerator<span class="token punctuation">.</span>Dispose<span class="token punctuation">(</span><span class="token punctuation">)</span>
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+                <span class="token keyword">try</span>
+                    <span class="token keyword">let</span> res <span class="token operator">=</span> step enumerator
+                    <span class="token keyword">if</span> Option<span class="token punctuation">.</span>isNone res <span class="token keyword">then</span> dispose <span class="token punctuation">(</span><span class="token punctuation">)</span>
+                    res
+                <span class="token keyword">with</span>
+                <span class="token operator">|</span> e <span class="token operator">-&gt;</span>
+                    dispose <span class="token punctuation">(</span><span class="token punctuation">)</span>
+                    raise e<span class="token punctuation">)</span><span class="token punctuation">,</span>
+            dispose<span class="token punctuation">)</span>
+
+<span class="token keyword">let</span> tryCatch <span class="token punctuation">(</span>items<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token punctuation">(</span>catchBody<span class="token punctuation">:</span> exn <span class="token operator">-&gt;</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    <span class="token operator">//</span> todo<span class="token punctuation">:</span> tutaj dispose takze powinien byc wspierany
+    newEnumerableForNext
+        <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span>
+            <span class="token keyword">let</span> <span class="token keyword">mutable</span> enumerators <span class="token operator">=</span> items<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">|&gt;</span> Choice1Of2
+            <span class="token keyword">let</span> <span class="token keyword">rec</span> next <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+                <span class="token keyword">match</span> enumerators <span class="token keyword">with</span>
+                <span class="token operator">|</span> Choice1Of2 enumerator <span class="token operator">-&gt;</span>
+                    <span class="token keyword">try</span>
+                        step enumerator
+                    <span class="token keyword">with</span>
+                    <span class="token operator">|</span> e <span class="token operator">-&gt;</span>
+                        enumerators <span class="token operator">&lt;-</span> <span class="token punctuation">(</span>catchBody e<span class="token punctuation">)</span><span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">|&gt;</span> Choice2Of2
+                        next <span class="token punctuation">(</span><span class="token punctuation">)</span>
+                <span class="token operator">|</span> Choice2Of2 enumerator <span class="token operator">-&gt;</span> step enumerator
+            next<span class="token punctuation">)</span>
+</code></pre>
+<h4 id="seqbuilder">SeqBuilder</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">type</span> DelayedS<span class="token operator">&lt;</span><span class="token type variable">'T</span><span class="token operator">&gt;</span> <span class="token operator">=</span> unit <span class="token operator">-&gt;</span> <span class="token type variable">'T</span> seq
+<span class="token keyword">let</span> returnS <span class="token operator">=</span> Seq<span class="token punctuation">.</span>singleton
+<span class="token keyword">let</span> bindS <span class="token operator">=</span> Seq<span class="token punctuation">.</span>collect
+
+<span class="token keyword">type</span> SeqBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+    <span class="token operator">//</span> member this<span class="token punctuation">.</span>Return<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnS <span class="token keyword">value</span>
+    <span class="token operator">//</span> member this<span class="token punctuation">.</span>ReturnFrom<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token keyword">value</span>
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=</span> Seq<span class="token punctuation">.</span>empty
+
+    member this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span>f<span class="token punctuation">:</span> DelayedS<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> f
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>Run<span class="token punctuation">(</span>delayed<span class="token punctuation">:</span> DelayedS<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> newEnumerable <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> <span class="token punctuation">(</span>delayed <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> 
+      <span class="token operator">//</span> seq <span class="token punctuation">{</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token punctuation">}</span> must be <span class="token keyword">lazy</span>
+
+    member this<span class="token punctuation">.</span>Bind<span class="token punctuation">(</span>monad<span class="token punctuation">,</span> binder<span class="token punctuation">)</span> <span class="token operator">=</span> bindS binder monad
+
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>Combine<span class="token punctuation">(</span>monad1<span class="token punctuation">,</span> monad2<span class="token punctuation">:</span> DelayedS<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> Seq<span class="token punctuation">.</span>append monad1 <span class="token punctuation">(</span>this<span class="token punctuation">_</span><span class="token punctuation">.</span>Run<span class="token punctuation">(</span>monad2<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">:</span> DelayedS<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span>
+        <span class="token keyword">if</span> guard <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">then</span>
+            this<span class="token punctuation">_</span><span class="token punctuation">.</span>Combine<span class="token punctuation">(</span>this<span class="token punctuation">_</span><span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span><span class="token punctuation">,</span> this<span class="token punctuation">_</span><span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> this<span class="token punctuation">_</span><span class="token punctuation">.</span>While<span class="token punctuation">(</span>guard<span class="token punctuation">,</span> body<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token keyword">else</span>
+            this<span class="token punctuation">_</span><span class="token punctuation">.</span>Zero<span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>Yield<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">)</span> <span class="token operator">=</span> returnS <span class="token keyword">value</span>
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>YieldFrom<span class="token punctuation">(</span><span class="token keyword">value</span><span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> <span class="token keyword">value</span>
+
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedS<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> finallyBody<span class="token punctuation">)</span> <span class="token operator">=</span> tryFinally <span class="token punctuation">(</span>this<span class="token punctuation">_</span><span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span><span class="token punctuation">)</span> finallyBody
+    member this<span class="token punctuation">_</span><span class="token punctuation">.</span>TryWith<span class="token punctuation">(</span>body<span class="token punctuation">:</span> DelayedS<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> catchBody<span class="token punctuation">)</span> <span class="token operator">=</span> tryCatch <span class="token punctuation">(</span>this<span class="token punctuation">_</span><span class="token punctuation">.</span>Run<span class="token punctuation">(</span>body<span class="token punctuation">)</span><span class="token punctuation">)</span> catchBody
+
+    member this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>res<span class="token punctuation">:</span> <span class="token directive function">#IDisposable</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span>
+        this<span class="token punctuation">.</span>TryFinally<span class="token punctuation">(</span>
+	        this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> body res<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> <span class="token keyword">if</span> not <span class="token punctuation">(</span>isNull <span class="token punctuation">(</span>box res<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">then</span> res<span class="token punctuation">.</span>Dispose<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    member this<span class="token punctuation">.</span>For<span class="token punctuation">(</span>sequence<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">,</span> body<span class="token punctuation">)</span> <span class="token operator">=</span>
+        this<span class="token punctuation">.</span>Using<span class="token punctuation">(</span>
+            sequence<span class="token punctuation">.</span>GetEnumerator<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+            <span class="token punctuation">(</span><span class="token keyword">fun</span> iterator <span class="token operator">-&gt;</span> 
+	            this<span class="token punctuation">.</span>While<span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> iterator<span class="token punctuation">.</span>MoveNext<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span> this<span class="token punctuation">.</span>Delay<span class="token punctuation">(</span><span class="token keyword">fun</span> <span class="token punctuation">_</span> <span class="token operator">-&gt;</span> body iterator<span class="token punctuation">.</span>Current<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+        <span class="token punctuation">)</span>
+
+<span class="token keyword">let</span> seq2 <span class="token operator">=</span> SeqBuilder<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<h4 id="seqbuilder---przykłady">SeqBuilder - przykłady</h4>
+<pre class=" language-ocaml"><code class="prism  language-ocaml"><span class="token keyword">let</span> printS <span class="token punctuation">(</span>items<span class="token punctuation">:</span> seq<span class="token operator">&lt;</span><span class="token punctuation">_</span><span class="token operator">&gt;</span><span class="token punctuation">)</span> <span class="token operator">=</span> printfn <span class="token string">"%A"</span> <span class="token punctuation">(</span>items <span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>toArray<span class="token punctuation">)</span>
+
+seq2 <span class="token punctuation">{</span>
+    yield <span class="token number">1</span>
+    yield <span class="token number">2</span>
+    yield<span class="token operator">!</span> <span class="token punctuation">[</span> <span class="token number">3</span><span class="token punctuation">;</span> <span class="token number">4</span><span class="token punctuation">;</span> <span class="token number">5</span> <span class="token punctuation">]</span>
+    <span class="token keyword">let</span> <span class="token keyword">mutable</span> i <span class="token operator">=</span> <span class="token number">6</span>
+    printfn <span class="token string">"while"</span>
+    <span class="token keyword">while</span> i <span class="token operator">&lt;</span> <span class="token number">8</span> <span class="token keyword">do</span>
+        printfn <span class="token string">"while %d"</span> i
+        yield i
+        i <span class="token operator">&lt;-</span> i <span class="token operator">+</span> <span class="token number">1</span>
+    printfn <span class="token string">"for"</span>
+    <span class="token keyword">for</span> j <span class="token operator">=</span> <span class="token number">8</span> <span class="token keyword">to</span> <span class="token number">10</span> <span class="token keyword">do</span>
+        printfn <span class="token string">"for %d"</span> j
+        yield j
+    printfn <span class="token string">"end"</span>
+<span class="token punctuation">}</span>
+<span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>truncate <span class="token number">10</span>
+<span class="token operator">|&gt;</span> printS
+
+
+
+seq2 <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token boolean">true</span> <span class="token keyword">then</span>
+        use dis <span class="token operator">=</span> disposable
+        <span class="token keyword">try</span>
+            <span class="token keyword">try</span>
+                yield <span class="token number">1</span>
+                yield <span class="token number">2</span> <span class="token operator">/</span> <span class="token number">0</span>
+            finally
+                printfn <span class="token string">"finally"</span>
+        <span class="token keyword">with</span>
+        <span class="token operator">|</span> e <span class="token operator">-&gt;</span> yield <span class="token number">666</span>
+    printfn <span class="token string">"end"</span>
+<span class="token punctuation">}</span>
+<span class="token operator">|&gt;</span> Seq<span class="token punctuation">.</span>truncate <span class="token number">1</span>
+<span class="token operator">|&gt;</span> printS
+
+
+seq2 <span class="token punctuation">{</span>
+    yield <span class="token number">1</span>
+    yield <span class="token number">2</span>
+    <span class="token operator">//</span> bind <span class="token punctuation">:</span><span class="token punctuation">)</span> <span class="token operator">-&gt;</span> dla wbudowanego seq <span class="token punctuation">{</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token punctuation">}</span> leci blad kompilacji<span class="token punctuation">:</span>
+    <span class="token operator">//</span> Używanie ciągu „<span class="token keyword">let</span><span class="token operator">!</span> x <span class="token operator">=</span> coll” w wyrażeniach sekwencji jest niedozwolone<span class="token punctuation">.</span> Zamiast tego użyj ciągu „<span class="token keyword">for</span> x <span class="token keyword">in</span> coll”
+    <span class="token keyword">let</span><span class="token operator">!</span> x <span class="token operator">=</span> seq <span class="token punctuation">{</span> <span class="token number">3</span> <span class="token punctuation">.</span><span class="token punctuation">.</span> <span class="token number">5</span> <span class="token punctuation">}</span>
+    yield x <span class="token operator">*</span> <span class="token number">10</span>
+    printfn <span class="token string">"end"</span>
+<span class="token punctuation">}</span>
+<span class="token operator">|&gt;</span> printS
+</code></pre>
+</div>
+
+
+
+</body></html>
