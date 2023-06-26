@@ -21,15 +21,14 @@ let validate inp =
         match remaining, opened with
         | [], [] -> Ok
         | [], _ ->
-            let len = opened |> List.length
-            Incomplete(opened |> List.take (len - 1))
+            Incomplete opened
         | rh :: rt, oh :: ot ->
             if isOpening rh then
                 loop rt (rh :: opened)
             else
                 let expectedClosing = openCloseMap[oh]
                 if rh = expectedClosing then loop rt ot else Corrupted(expectedClosing, rh)
-    loop (inp |> Seq.toList) (inp |> Seq.take 1 |> Seq.toList)
+    loop (inp |> Seq.skip 1 |> Seq.toList) (inp |> Seq.take 1 |> Seq.toList)
 
 let result1 =
     File.ReadAllLines "Data/Day10_2021.txt"
