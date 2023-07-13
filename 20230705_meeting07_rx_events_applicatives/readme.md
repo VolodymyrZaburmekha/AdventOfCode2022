@@ -1,4 +1,5 @@
 
+### 2023.07.05 Meeting 7 Rx, Event, Observable, applicative functors
 
 - Rx  (Reactive Extensions)
 - Event and Observable modules
