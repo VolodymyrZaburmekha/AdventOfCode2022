@@ -37,8 +37,8 @@ let value =
             | Add value -> let next = current + value in next, [ current; next ]
             | Noop -> current, [ current ])
         (1, [ 1 ])
-    |> Seq.map snd
-    |> Seq.concat
+
+    |> Seq.collect snd
     |> Seq.toArray
 
 let part1 =

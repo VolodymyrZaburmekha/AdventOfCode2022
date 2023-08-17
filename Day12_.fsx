@@ -1,6 +1,8 @@
 open System.Collections.Generic
 open System.IO
 
+
+
 let findCharIndex (lines: string []) (c: char) =
     // lines |> Array.findIndex (fun l -> l.Contains(char)) |> fun y -> (y, lines.[y].IndexOf(char))
     let y = lines |> Array.findIndex (fun l -> l.Contains(c)) in (y, lines.[y].IndexOf(c))
@@ -66,8 +68,11 @@ let input = parseInput (File.ReadAllLines "Data/Day12.txt")
 
 let start, finish, arr = input
 
-let result1 =
-    findPaths arr start finish |> Seq.choose (fun kv -> if kv.Key = finish then Some kv.Value else None) |> Seq.min
+// let result1 =
+//     findPaths arr start finish |> Seq.choose (fun kv -> if kv.Key = finish then Some kv.Value else None) |> Seq.min
+let result1 = findPaths arr start finish |> Map.find finish
+
+
 
 
 let findCharIndexes (map: char [,]) (searchedChar: char) =
@@ -78,6 +83,8 @@ let findCharIndexes (map: char [,]) (searchedChar: char) =
     // |> List.map (fun (y, x, _) -> (y, x))
     indexed |> Seq.cast<int * int * char> |> Seq.choose (fun (y, x, c) -> if c = searchedChar then Some(y, x) else None)
 
+
+#time "on"
 
 let result2 =
     let starts = findCharIndexes arr 'a' |> Seq.toArray

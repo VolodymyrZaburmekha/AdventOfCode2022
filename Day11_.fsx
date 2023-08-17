@@ -68,6 +68,7 @@ let getArgumentValue arg worry =
     | Constant c -> c
     | Old -> worry
 
+
 let replace items monkey = List.updateAt monkey.Id monkey items
 // let index = items |> List.findIndex (fun m -> m.Id = monkey.Id)
 // let before = items |> List.take index
