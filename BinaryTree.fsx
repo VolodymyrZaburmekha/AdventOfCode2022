@@ -6,12 +6,7 @@ type Tree<'a when 'a: comparison> =
 
 type LevelsMap<'a when 'a: comparison> = Map<int, Map<int, 'a option>>
 let parse elements =
-    let rec buildLevels
-        (level: int)
-        (remaining: 'a option seq)
-        (levelIndexes: int list option)
-        (acc: LevelsMap<'a>)
-        =
+    let rec buildLevels (level: int) (remaining: 'a option seq) (levelIndexes: int list option) (acc: LevelsMap<'a>) =
         if Seq.isEmpty remaining then
             acc
         else
@@ -133,7 +128,7 @@ let rec compare tree1 tree2 =
     | Empty, _ -> false
     | Node(value1, left1, right1), Node(value2, left2, right2) ->
         (value1 = value2) && (compare left1 left2) && (compare right1 right2)
-        
+
 compare (parse [ Some 1; Some 2; Some 3 ]) (parse [ Some 1; Some 2; Some 3 ]) = true
 compare (parse [ Some 1; Some 2; None ]) (parse [ Some 1; None; Some 2 ]) = false
 compare (parse [ Some 1; Some 2; Some 1 ]) (parse [ Some 1; Some 1; Some 2 ]) = false
@@ -147,22 +142,19 @@ let rec inOrderEnumerator tree =
             yield value
             yield! inOrderEnumerator right
     }
-parse [Some 7;Some 3; Some 15; None; None; Some 9; Some 20] |> inOrderEnumerator |> Seq.toList = [3;7;9;15;20]
+parse [ Some 7; Some 3; Some 15; None; None; Some 9; Some 20 ] |> inOrderEnumerator |> Seq.toList = [ 3; 7; 9; 15; 20 ]
 
 let levelOrderTraversal tree =
     let rec loop level branch acc =
         match branch with
         | Empty -> acc
         | Node(value, left, right) ->
-            
-            let nextLevel = level + 1
-            (level, value) :: acc @ (loop nextLevel left  []) @ (loop nextLevel right  [])
-    loop 0 tree []
-    |> Seq.groupBy fst
-    |> Seq.map (fun (_, co) -> co |> Seq.map snd |> Seq.toList)
-    |> Seq.toList
 
-parse [Some 3; Some 9; Some 20;None; None; Some  15;Some  7] |> levelOrderTraversal = [[3]; [9; 20]; [15; 7]]
+            let nextLevel = level + 1
+            (level, value) :: acc @ (loop nextLevel left []) @ (loop nextLevel right [])
+    loop 0 tree [] |> Seq.groupBy fst |> Seq.map (fun (_, co) -> co |> Seq.map snd |> Seq.toList) |> Seq.toList
+
+parse [ Some 3; Some 9; Some 20; None; None; Some 15; Some 7 ] |> levelOrderTraversal = [ [ 3 ]; [ 9; 20 ]; [ 15; 7 ] ]
 
 let testTree =
     Node(
@@ -178,3 +170,34 @@ let testTree =
 
 preorderTraversal testTree = ("ABDHIECFJKGL" |> Seq.toList)
 postorderTraversal testTree = ("HIDEBJKFLGCA" |> Seq.toList)
+
+let rec delete element tree =
+    match tree with
+    | Node(value, left, right) ->
+        if element = value then
+            match left, right with
+            | Empty, Empty -> Empty
+            | Empty, node -> node
+            | node, Empty -> node
+            | node1, node2 ->
+                let rec getMin searchTree =
+                    match searchTree with
+                    | Empty ->
+                        System.Console.WriteLine $"get min from {searchTree}"
+                        failwith "empty tree"
+                    | Node(value, left, _) ->
+                        match left with
+                        | Empty -> value
+                        | Node(leftValue, left, _) ->
+                            match left with
+                            | Empty -> leftValue
+                            | notEmpty -> getMin notEmpty
+                let min = getMin node2
+                Node(min, node1, (delete min node2))
+        else
+            Node(value, (delete element left), (delete element right))
+    | Empty -> Empty
+
+
+let treeToDelete = [ Some 50; Some 30; Some 70; Some 20; Some 40; Some 60; Some 80 ] |> parse
+treeToDelete |> delete 150
