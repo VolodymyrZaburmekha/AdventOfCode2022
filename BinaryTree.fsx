@@ -183,7 +183,6 @@ let rec delete element tree =
                 let rec getMin searchTree =
                     match searchTree with
                     | Empty ->
-                        System.Console.WriteLine $"get min from {searchTree}"
                         failwith "empty tree"
                     | Node(value, left, _) ->
                         match left with
